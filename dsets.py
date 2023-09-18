@@ -5,6 +5,7 @@ import pandas as pd
 import os
 from torchvision import transforms
 
+#torchaudio.set_audio_backend(backend="soundfile")
 class ESC50Data_gpu(Dataset):
     def __init__(self,
                  path="E:\Data\ESC-50-master\ESC-50-master",
@@ -60,17 +61,4 @@ class ESC50Data_gpu(Dataset):
         return feature_melspec_db, label
 
 
-class DataTransform:
-    data_transform = None
-    def __init__(self, device=None):
-        mean = [-8.8024]
-        std = [20.8701]
-        sample_rate = 44100
-
-        self.data_transform = transforms.Compose([
-            torchaudio.transforms.MelSpectrogram(sample_rate, n_mels=128, n_fft=2048, hop_length=512, f_min=0,
-                                                 f_max=8000).to(device),
-            torchaudio.transforms.AmplitudeToDB(stype="power", top_db=80).to(device),
-            transforms.Normalize(mean, std).to(device)
-        ])
 

@@ -15,15 +15,15 @@ from torch.utils.data import DataLoader, ConcatDataset
 
 from model import CNNModel, CNNModel_2, CNNModel_BatchNorm, CNNModel_Res, CNNModel_ResNet, CNNModel_AlexNet, \
     CNNModel_ResBlocks, CNNModel_BaseModel, CNNModel_BaseModelV3, CNNModel_BaseModelV4, CNNModel_BaseModelV5
-from dsets import ESC50Data_gpu, DataTransform
+from dsets import ESC50Data_gpu
 import torchaudio
 from torchvision import transforms
-import time
 import logging
+import shutil
 
-log_dir = os.path.join('runs', "Simple",  datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))
-writer_val = SummaryWriter(log_dir=log_dir + '-val_cls-' + "CNNModel_BaseModelV5_NoFolds_Augmented_8000")
-writer_trn = SummaryWriter(log_dir=log_dir + '-trn_cls-' + "CNNModel_BaseModelV5_NoFolds_Augmented_8000")
+#log_dir = os.path.join('runs', "Simple",  datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))
+"""writer_val = SummaryWriter(log_dir=log_dir + '-val_cls-' + "CNNModel_BaseModelV5_NoFolds_Augmented_8000")
+writer_trn = SummaryWriter(log_dir=log_dir + '-trn_cls-' + "CNNModel_BaseModelV5_NoFolds_Augmented_8000")"""
 logging.basicConfig(level=logging.DEBUG)
 
 log = logging.getLogger(__name__)
@@ -56,19 +56,19 @@ class TrainingApp:
                             )
         parser.add_argument('--epochs',
                             help='Number of epochs to train for',
-                            default=100,
+                            default=3,
                             type=int,
                             )
 
         parser.add_argument('--tb-prefix',
-                            default='AudioCNN',
-                            help="Data prefix to use for Tensorboard run. Defaults to chapter.",
+                            default='CNN',
+                            help="Data prefix to use for Tensorboard run.",
                             )
 
         parser.add_argument('comment',
                             help="Comment suffix for Tensorboard run.",
                             nargs='?',
-                            default='AsukaFan',
+                            default='CNNModel_BaseModelV5_TestWriters_NoFolds_Augmented_8000',
                             )
         self.cli_args = parser.parse_args(sys_argv)
         self.time_str = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
@@ -85,7 +85,10 @@ class TrainingApp:
 
         self.path = "E:\Data\ESC-50-master\ESC-50-master"
         self.columns = ['filename', 'fold', 'target']
-        self.num_folds = 1
+        self.num_folds = random.randint(1, 5)
+
+        self.writer_val = self.initTensorboardWriters("val")
+        self.writer_trn = self.initTensorboardWriters("train")
 
 
 
@@ -186,11 +189,20 @@ class TrainingApp:
                                                  shuffle=False)
         return val_loader
 
+    def initTensorboardWriters(self, phase):
+        log_dir = os.path.join('runs', self.cli_args.tb_prefix, self.time_str)
+        if phase == "train":
+            writer = SummaryWriter(log_dir=log_dir + '-trn_cls-' + self.cli_args.comment)
+        elif phase == "val":
+            writer = SummaryWriter(log_dir=log_dir + '-val_cls-' + self.cli_args.comment)
+        return writer
+
 
     def main(self):
 
         #batch_size = self.cli_args.batch_size
 
+        min_loss = 10.0
         for epoch in range(1, self.cli_args.epochs + 1):
             log.info(f"Time {datetime.datetime.now()}, Epoch {epoch}")
             # we get the mean of the batch metrics and the apply the mean of the 5 folds
@@ -248,8 +260,10 @@ class TrainingApp:
 
             # evaluation of the epoch
 
-            self.logMetrics(epoch, fold_metrics, self.totalTrainingSamples_count)
+            loss_val = self.logMetrics(epoch, fold_metrics, self.totalTrainingSamples_count)
+            min_loss = min(min_loss, loss_val)
 
+            self.saveModel(epoch, min_loss == loss_val)
             """if epoch == 1 or epoch % 5 == 0:
                 self.model.eval()
                 for name, loader in [("train", train_loader), ("val", val_loader)]:
@@ -264,8 +278,8 @@ class TrainingApp:
 
                     self.logMetrics(fold, epoch, name, batch_metrics, self.totalTrainingSamples_count)"""
 
-            writer_val.close()
-            writer_trn.close()
+            self.writer_val.close()
+            self.writer_trn.close()
 
     def computeBatchLoss(self, batch_idx, batch_tuple, batch_metrics=None, evaluation=False):
         # returns the mean of the batch loss by default
@@ -373,22 +387,24 @@ class TrainingApp:
                         time, epoch, "val", avg_loss, avg_accuracy, avg_precision, avg_recall, avg_f1_score
                     ))
 
-                writer_val.add_scalar('Loss', avg_loss, totalTrainingSamples_count)
-                writer_val.add_scalar('Accuracy', avg_accuracy, totalTrainingSamples_count)
-                writer_val.add_scalar('Precision', avg_precision, totalTrainingSamples_count)
-                writer_val.add_scalar('Recall', avg_recall, totalTrainingSamples_count)
-                writer_val.add_scalar('F1 Score', avg_f1_score, totalTrainingSamples_count)
+                self.writer_val.add_scalar('Loss', avg_loss, totalTrainingSamples_count)
+                self.writer_val.add_scalar('Accuracy', avg_accuracy, totalTrainingSamples_count)
+                self.writer_val.add_scalar('Precision', avg_precision, totalTrainingSamples_count)
+                self.writer_val.add_scalar('Recall', avg_recall, totalTrainingSamples_count)
+                self.writer_val.add_scalar('F1 Score', avg_f1_score, totalTrainingSamples_count)
+
+                loss_val = avg_loss
             else:
                 log.info(
                     "Time {} | Epoch {} | Phase {} | Loss: {:.4f} | Accuracy: {:.4f} | Precision: {:.4f} | Recall: {:.4f} | F1 Score: {:.4f}".format(
                         time, epoch, "train", avg_loss, avg_accuracy, avg_precision, avg_recall, avg_f1_score
                     ))
 
-                writer_trn.add_scalar('Loss', avg_loss, totalTrainingSamples_count)
-                writer_trn.add_scalar('Accuracy', avg_accuracy, totalTrainingSamples_count)
-                writer_trn.add_scalar('Precision', avg_precision, totalTrainingSamples_count)
-                writer_trn.add_scalar('Recall', avg_recall, totalTrainingSamples_count)
-                writer_trn.add_scalar('F1 Score', avg_f1_score, totalTrainingSamples_count)
+                self.writer_trn.add_scalar('Loss', avg_loss, totalTrainingSamples_count)
+                self.writer_trn.add_scalar('Accuracy', avg_accuracy, totalTrainingSamples_count)
+                self.writer_trn.add_scalar('Precision', avg_precision, totalTrainingSamples_count)
+                self.writer_trn.add_scalar('Recall', avg_recall, totalTrainingSamples_count)
+                self.writer_trn.add_scalar('F1 Score', avg_f1_score, totalTrainingSamples_count)
 
         """elif phase == 'train':  # For training phase
             # Log metrics to TensorBoard
@@ -397,7 +413,46 @@ class TrainingApp:
             writer_trn.add_scalar('Precision', avg_precision, totalTrainingSamples_count)
             writer_trn.add_scalar('Recall', avg_recall, totalTrainingSamples_count)
             writer_trn.add_scalar('F1 Score', avg_f1_score, totalTrainingSamples_count)"""
+        return loss_val
 
+    def saveModel(self, epoch, isBest=False):
+        file_path = os.path.join(
+            'models',
+            self.cli_args.tb_prefix,
+            '{}_{}.{}.state'.format(
+                self.time_str,
+                self.cli_args.comment,
+                self.totalTrainingSamples_count,
+            )
+        )
+        os.makedirs(os.path.dirname(file_path), mode=0o755, exist_ok=True)
+        model = self.model
+
+        state = {
+            'model_state': model.state_dict(),
+            'model_name': type(model).__name__,
+            'optimizer_state': self.optimizer.state_dict(),
+            'optimizer_name': type(self.optimizer).__name__,
+            'epoch': epoch,
+            'totalTrainingSamples_count': self.totalTrainingSamples_count,
+        }
+        torch.save(state, file_path)
+
+        log.debug("Saved model params to {}".format(file_path))
+
+        if isBest:
+            best_path = os.path.join(
+                'models',
+                self.cli_args.tb_prefix,
+                '{}_{}.{}.state'.format(
+                    self.time_str,
+                    self.cli_args.comment,
+                    'best',
+                )
+            )
+            shutil.copyfile(file_path, best_path)
+
+            log.debug("Saved best model params to {}".format(best_path))
 
 
 if __name__ == '__main__':

@@ -3,14 +3,14 @@ import math
 import torch.nn as nn
 import torchvision.models
 
-from utils.logconf import logging
+#from utils.logconf import logging
 from torchvision.models import resnet34, resnet18, ResNet18_Weights, ResNet34_Weights
 
 
-log = logging.getLogger(__name__)
+#log = logging.getLogger(__name__)
 # log.setLevel(logging.WARN)
 # log.setLevel(logging.INFO)
-log.setLevel(logging.DEBUG)
+#log.setLevel(logging.DEBUG)
 
 
 class CNNModel(nn.Module):
