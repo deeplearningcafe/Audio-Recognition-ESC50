@@ -21,9 +21,6 @@ from torchvision import transforms
 import logging
 import shutil
 
-#log_dir = os.path.join('runs', "Simple",  datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'))
-"""writer_val = SummaryWriter(log_dir=log_dir + '-val_cls-' + "CNNModel_BaseModelV5_NoFolds_Augmented_8000")
-writer_trn = SummaryWriter(log_dir=log_dir + '-trn_cls-' + "CNNModel_BaseModelV5_NoFolds_Augmented_8000")"""
 logging.basicConfig(level=logging.DEBUG)
 
 log = logging.getLogger(__name__)
@@ -85,7 +82,9 @@ class TrainingApp:
 
         self.path = "E:\Data\ESC-50-master\ESC-50-master"
         self.columns = ['filename', 'fold', 'target']
-        self.num_folds = random.randint(1, 5)
+        #self.num_folds = random.randint(1, 5)
+        self.num_folds = 1
+
 
         self.writer_val = self.initTensorboardWriters("val")
         self.writer_trn = self.initTensorboardWriters("train")
@@ -199,9 +198,6 @@ class TrainingApp:
 
 
     def main(self):
-
-        #batch_size = self.cli_args.batch_size
-
         min_loss = 10.0
         for epoch in range(1, self.cli_args.epochs + 1):
             log.info(f"Time {datetime.datetime.now()}, Epoch {epoch}")
@@ -210,24 +206,6 @@ class TrainingApp:
             fold_metrics = torch.zeros(2, self.num_folds, 5, device=self.device)
             for fold in range(1, self.num_folds + 1):
                 #log.info(f"Time {datetime.datetime.now()}, Fold {fold}/{self.num_folds}")
-                """dataset = ESC50Data_gpu(self.path, *self.columns, fold + 1, False, self.transform, self.device)
-                dataset_val = ESC50Data_gpu(self.path, *self.columns, fold + 1, True, self.transform, self.device)
-                dataset_augmented = ESC50Data_gpu(self.path, *self.columns, fold + 1, False, self.augmentedtransform,
-                                                  self.device)
-                dataset_augmented1 = ESC50Data_gpu(self.path, *self.columns, fold + 1, False, self.augmentedtransform,
-                                                  self.device)
-                dataset_augmented2 = ESC50Data_gpu(self.path, *self.columns, fold + 1, False, self.augmentedtransform,
-                                                  self.device)
-                dataset_augmented3 = ESC50Data_gpu(self.path, *self.columns, fold + 1, False, self.augmentedtransform,
-                                                  self.device)
-
-                combined_dataset = ConcatDataset([dataset, dataset_augmented, dataset_augmented1, dataset_augmented2,
-                                                  dataset_augmented3])
-
-                train_loader = torch.utils.data.DataLoader(combined_dataset, batch_size=batch_size,
-                                                            shuffle = False)
-                val_loader = torch.utils.data.DataLoader(dataset_val, batch_size=batch_size,
-                                                         shuffle=False)"""
                 train_loader = self.initTrain(fold)
                 val_loader = self.initVal(fold)
 
@@ -291,16 +269,10 @@ class TrainingApp:
         outputs = self.model(imgs)
         loss = loss_func(outputs, labels)
 
-        # dimensions of loss?, can it be the mean of the batch loss?
 
         if evaluation:
-            #_, predicted = torch.max(outputs, dim=1)  # <2>
-            #print("predicted", predicted, " and torch argmax", outputs.argmax(dim=1)) this is the same
-            # acc = self.computeAccuracy(predicted, labels)
             correct_predictions = (outputs.argmax(dim=1) == labels).sum().item()
             accuracy = correct_predictions / labels.shape[0]
-            #accuracy = self.computeAccuracy(outputs.argmax(dim=1), labels)
-            #print("acc with function ", accuracy, "acc with argmax ", accuracy) the same
 
             num_classes = 50
             true_positives = torch.zeros(num_classes)
@@ -314,12 +286,7 @@ class TrainingApp:
 
             precision = true_positives / (true_positives + false_positives)
             recall = true_positives / (true_positives + false_negatives)
-            """metrics_loop = {
-                'loss': loss.item(),
-                'acc': accuracy,
-                'Precision': precision.item(),
-                'Recall': recall.item(),
-            }"""
+
             for i in range(num_classes):
                 if np.isnan(precision[i]):
                     precision[i] = 0.0
@@ -328,7 +295,6 @@ class TrainingApp:
 
                 #print(f"Class {i}: Precision: {precision[i]:.2f}, Recall: {recall[i]:.2f}")
 
-            #fold_metrics.append(metrics_loop)
             # Store metrics in the batch_metrics tensor, in our case it would be 320 *
             # compute precision and recall for all classes
             precision = float(precision.sum()) / precision.shape[0]
@@ -406,13 +372,7 @@ class TrainingApp:
                 self.writer_trn.add_scalar('Recall', avg_recall, totalTrainingSamples_count)
                 self.writer_trn.add_scalar('F1 Score', avg_f1_score, totalTrainingSamples_count)
 
-        """elif phase == 'train':  # For training phase
-            # Log metrics to TensorBoard
-            writer_trn.add_scalar('Loss', avg_loss, totalTrainingSamples_count)
-            writer_trn.add_scalar('Accuracy', avg_accuracy, totalTrainingSamples_count)
-            writer_trn.add_scalar('Precision', avg_precision, totalTrainingSamples_count)
-            writer_trn.add_scalar('Recall', avg_recall, totalTrainingSamples_count)
-            writer_trn.add_scalar('F1 Score', avg_f1_score, totalTrainingSamples_count)"""
+
         return loss_val
 
     def saveModel(self, epoch, isBest=False):
