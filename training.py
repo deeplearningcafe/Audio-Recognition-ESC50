@@ -65,7 +65,7 @@ class TrainingApp:
         parser.add_argument('comment',
                             help="Comment suffix for Tensorboard run.",
                             nargs='?',
-                            default='CNNModel_BaseModelV5_TestWriters_NoFolds_Augmented_8000',
+                            default='CNNModel_BaseModelV5_TestWriters_Folds_Augmented_8000',
                             )
         self.cli_args = parser.parse_args(sys_argv)
         self.time_str = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
@@ -83,7 +83,7 @@ class TrainingApp:
         self.path = "E:\Data\ESC-50-master\ESC-50-master"
         self.columns = ['filename', 'fold', 'target']
         #self.num_folds = random.randint(1, 5)
-        self.num_folds = 1
+        self.num_folds = 5
 
 
         self.writer_val = self.initTensorboardWriters("val")
