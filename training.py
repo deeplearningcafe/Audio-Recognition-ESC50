@@ -82,7 +82,6 @@ class TrainingApp:
 
         self.path = "E:\Data\ESC-50-master\ESC-50-master"
         self.columns = ['filename', 'fold', 'target']
-        #self.num_folds = random.randint(1, 5)
         self.num_folds = 5
 
 
@@ -190,6 +189,7 @@ class TrainingApp:
 
     def initTensorboardWriters(self, phase):
         log_dir = os.path.join('runs', self.cli_args.tb_prefix, self.time_str)
+        writer = None
         if phase == "train":
             writer = SummaryWriter(log_dir=log_dir + '-trn_cls-' + self.cli_args.comment)
         elif phase == "val":
@@ -210,8 +210,6 @@ class TrainingApp:
                 val_loader = self.initVal(fold)
 
                 #print(len(train_loader.dataset), "  ", len(val_loader.dataset))
-
-                # len(train_loader) is 5, 1600 / 320 = 5, and the batch size is 320
                 for batch_idx, batch_tuple in enumerate(train_loader):
                     #print(batch_idx, "    ",datetime.datetime.now())
 
@@ -233,8 +231,6 @@ class TrainingApp:
                             self.computeBatchLoss(batch_idx, batch_tuple, batch_metrics, evaluation=True)
 
                     self.computeMetrics(name, batch_metrics, fold_metrics, fold-1)
-                    #self.logMetrics(fold, epoch, name, batch_metrics, self.totalTrainingSamples_count)
-
 
             # evaluation of the epoch
 
@@ -242,19 +238,6 @@ class TrainingApp:
             min_loss = min(min_loss, loss_val)
 
             self.saveModel(epoch, min_loss == loss_val)
-            """if epoch == 1 or epoch % 5 == 0:
-                self.model.eval()
-                for name, loader in [("train", train_loader), ("val", val_loader)]:
-
-                    #fold_metrics = []
-                    # len(train_loader) number of batches
-                    batch_metrics = torch.zeros(len(loader), 5, device=self.device) # we want to store 4 variables
-
-                    with torch.no_grad():  # <1>
-                        for batch_idx, batch_tuple in enumerate(loader):
-                            self.computeBatchLoss(batch_idx, batch_tuple, batch_metrics, evaluation=True)
-
-                    self.logMetrics(fold, epoch, name, batch_metrics, self.totalTrainingSamples_count)"""
 
             self.writer_val.close()
             self.writer_trn.close()
