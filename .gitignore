@@ -1,0 +1,7 @@
+.idea/
+__pycache__/
+utils/
+notes.txt
+runs/
+models/
+simple.py
