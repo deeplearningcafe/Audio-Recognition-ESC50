@@ -1,3 +1,4 @@
+[[Japanese](README.md)/English]
 # Audio-Recognition-ESC50
 The objective of this project is to classify environmental sounds, using Convolutional Neural Networks(CNN). 
 Audio datasets have a limited number of samples, so data augmentation seemed to be a good aproach to solve that
@@ -18,7 +19,7 @@ https://github.com/karolpiczak/ESC-50
 The dataset consists of 2000 samples of environmental sounds, there are 50 classes. The dataset is divided in 5 folds 
 which will be helpful for the splitting of the data. The classes range from animals sounds to urban noises.
 
-### データ拡張
+### Data agumentation
 In the form of a spectrogram, normal image transformations can be used but there are some of them that produce bad 
 transformations. For example, it is not usefull to apply a flip transformation, because the X axis is the time, so the 
 time would be inverted. In the end, the used transformations were random crop and time-frequency mask. The initial 
@@ -32,12 +33,12 @@ this prevents overfitting and makes the model more robust, but it may produce a 
 After testing several architectures, the most promising models were
 
     -Resnet18。
-    - A 8 layer depth model using stride 2 in the convolutions instead of maxpooling, and using avgpool for the last layers, like the resnet architecture does.
+    -A 8 layer depth model using stride 2 in the convolutions instead of maxpooling, and using avgpool for the last layers, like the resnet architecture does.
     -A 4 layer depth model that uses maxpool to decrease dimensions instead of adding stride in the convolutions.
 
 ## File description
     -dsets.py　Module that creates the datasets.
-    -training.py 学習を実践する。Main file that has the training loop and the metrics.
+    -training.py Main file that has the training loop and the metrics.
     -model.py Module that stores the different models
 
 ## Training
@@ -63,7 +64,7 @@ The results were achieved using 40 epochs as parameters, with took approximately
 Resnet18 model, the pink line is the 8 depth layer CNN. Finally, the blue line is the 4 depth layer CNN.
 
 This 3 graphs are accuracy, F1-score and loss, respectively.
-### 精度
+### Accuracy
 ![制度](Results/Accuracy.svg)
 
 ### F1 Score
